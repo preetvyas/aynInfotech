@@ -10,7 +10,12 @@ var ObjectId = mongoose.Types.ObjectId;
 const validateRegisterInput = require("../../validation/register");
 const validateLoginInput = require("../../validation/login");
 const ScreenShot =require("../../models/ScreenShort")
-
+var cloudinary = require('cloudinary');
+cloudinary.config({
+    cloud_name: 'dxthmh1wc',
+    api_key: '854829342212346',
+    api_secret: 'wRvoto2ZAnwYhsQSi4WNl_49jkU'
+});
 // Load User model
 const User = require("../../models/User");
 
@@ -53,13 +58,33 @@ router.post("/register", (req, res) => {
 });
 router.post("/file",(req,res)=>{
   //ScreenShot
-  var data ={
-    image:req.body.file,
-    userId:ObjectId(req.body.userId)
-  }
-  ScreenShot.create(data).then(user => {
-    res.json(user)
-  }) .catch(err => console.log(err));;
+  let transformationData = {}
+  let ImagePath = req.body.file;
+  transformationData = {
+    folder: "AynInfotech/", timeout: 60000
+    // transformation: [{ angle: req.fields.vAngle }, { timeout: 60000 }]
+}
+  cloudinary.v2.uploader.upload(ImagePath, transformationData,
+    function (error, result) {
+      console.log(error,'error')
+        if (error) {
+            res.end(JSON.stringify({
+                type: false,
+                message: error
+            }));
+        }
+        else {
+            let Image = result.public_id + '.' + result.format;
+            var data ={
+                image:Image,
+                userId:ObjectId(req.body.userId)
+              }
+              ScreenShot.create(data).then(user => {
+                res.json(user)
+              }) .catch(err => console.log(err,'catch'));;
+          }
+        })
+  //
 })
 // @route POST api/users/login
 // @desc Login user and return JWT token
@@ -116,5 +141,30 @@ router.post("/login", (req, res) => {
     });
   });
 });
+router.post("/list", (req, res) => {
+  // Form validation
 
+
+  ScreenShot.aggregate([
+    { "$lookup": {
+         "from": "users",
+         "localField": "userId",
+         "foreignField": "_id",
+         "as": "user"
+       }},
+       { "$unwind": "$user" },
+       { "$project":{
+           id:1,
+           image:1,
+           name:"$user.name"
+           }
+       }
+   ]).then(user => {
+    return res.status(200).json(user)
+    // Check if user exists
+ 
+  }).catch((error)=>{
+   console.log(error,'@@@@@')
+  });
+});
 module.exports = router;
