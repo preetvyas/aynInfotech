@@ -31,7 +31,7 @@ class ClCamera extends Component {
             alert('Error getting access to your camera');
         });
         this.interval = setInterval(() =>
-            this.setState({ time: Date.now() }, this.captureImage), 3000);
+            this.setState({ time: Date.now() }, this.captureImage), 30000);
     }
     
     componentDidUpdate(prevProps) {
